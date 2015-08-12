@@ -1,304 +1,62 @@
--- More trees!  2013-04-07
---
--- This mod adds more types of trees to the game
---
--- Some of the node definitions and textures came from cisoun's conifers mod 
--- and bas080's jungle trees mod.
---
--- Brought together into one mod and made L-systems compatible by Vanessa
--- Ezekowitz.
---
--- Firs and Jungle tree axioms/rules by Vanessa Ezekowitz, with the 
--- latter having been tweaked by RealBadAngel, most other axioms/rules written
--- by RealBadAngel.
---
--- License: WTFPL for all parts (code and textures, including those copied
--- from the jungletree and conifers mods) except the default jungle tree trunk
--- texture, which is CC-By-SA.
+-- Minetest 0.4 mod: default
+-- See README.txt for licensing and other information.
 
-moretrees = {}
+-- The API documentation in here was moved into game_api.txt
 
--- Read the default config file (and if necessary, copy it to the world folder).
+-- Definitions made by this mod that other mods can use too
+default = {}
 
-local worldpath=minetest.get_worldpath()
-local modpath=minetest.get_modpath("moretrees")
+default.LIGHT_MAX = 14
 
-dofile(modpath.."/default_settings.txt")
+-- GUI related stuff
+default.gui_bg = "bgcolor[#08080899;false]"
+default.gui_bg_img = "background[5,5;1,1;gui_formbg.png;true]"
+default.gui_slots = "listcolors[#00000069;#5A5A5A;#141318;#30434C;#FFF]"
 
-if io.open(worldpath.."/moretrees_settings.txt","r") == nil then
-
-	io.input(modpath.."/default_settings.txt")
-	io.output(worldpath.."/moretrees_settings.txt")
-
-	local size = 2^13      -- good buffer size (8K)
-	while true do
-		local block = io.read(size)
-		if not block then
-			io.close()
-			break
-		end
-		io.write(block)
+function default.get_hotbar_bg(x,y)
+	local out = ""
+	for i=0,7,1 do
+		out = out .."image["..x+i..","..y..";1,1;gui_hb_bg.png]"
 	end
-else
-	dofile(worldpath.."/moretrees_settings.txt")
+	return out
 end
 
--- Boilerplate to support localized strings if intllib mod is installed.
-local S
-if minetest.get_modpath("intllib") then
-	S = intllib.Getter()
-else
-	S = function(s) return s end
-end
-moretrees.intllib = S
+default.gui_suvival_form = "size[8,8.5]"..
+			default.gui_bg..
+			default.gui_bg_img..
+			default.gui_slots..
+			"list[current_player;main;0,4.25;8,1;]"..
+			"list[current_player;main;0,5.5;8,3;8]"..
+			"list[current_player;craft;1.75,0.5;3,3;]"..
+			"list[current_player;craftpreview;5.75,1.5;1,1;]"..
+			"image[4.75,1.5;1,1;gui_furnace_arrow_bg.png^[transformR270]"..
+			default.get_hotbar_bg(0,4.25)
 
--- infinite stacks checking
+-- Load files
+dofile(minetest.get_modpath("default").."/functions.lua")
+dofile(minetest.get_modpath("default").."/nodes.lua")
+dofile(minetest.get_modpath("default").."/furnace.lua")
+dofile(minetest.get_modpath("default").."/tools.lua")
+dofile(minetest.get_modpath("default").."/craftitems.lua")
+dofile(minetest.get_modpath("default").."/crafting.lua")
+dofile(minetest.get_modpath("default").."/mapgen.lua")
+dofile(minetest.get_modpath("default").."/player.lua")
+dofile(minetest.get_modpath("default").."/trees.lua")
+dofile(minetest.get_modpath("default").."/commands.lua")
+dofile(minetest.get_modpath("default").."/aliases.lua")
 
-if minetest.get_modpath("unified_inventory") or not minetest.setting_getbool("creative_mode") then
-	moretrees.expect_infinite_stacks = false
-else
-	moretrees.expect_infinite_stacks = true
-end
+-- Legacy:
+WATER_ALPHA = minetest.registered_nodes["default:water_source"].alpha
+WATER_VISC = minetest.registered_nodes["default:water_source"].liquid_viscosity
+LAVA_VISC = minetest.registered_nodes["default:lava_source"].liquid_viscosity
+LIGHT_MAX = default.LIGHT_MAX
 
--- tables, load other files
+hotbar_size = minetest.setting_get("hotbar_size") or 16
 
-moretrees.cutting_tools = {
-	"default:axe_bronze",
-	"default:axe_diamond",
-	"default:axe_mese",
-	"default:axe_steel",
-	"glooptest:axe_alatro",
-	"glooptest:axe_arol",
-	"moreores:axe_mithril",
-	"moreores:axe_silver",
-	"titanium:axe",
-}
+minetest.register_on_joinplayer(function(player)
+	player:hud_set_hotbar_itemcount(hotbar_size)
+	minetest.after(0.5,function()
+		player:hud_set_hotbar_selected_image("gui_hotbar_selected.png")
+	end)
+end)
 
-dofile(modpath.."/tree_models.lua")
-dofile(modpath.."/node_defs.lua")
-dofile(modpath.."/biome_defs.lua")
-dofile(modpath.."/saplings.lua")
-dofile(modpath.."/crafts.lua")
-dofile(modpath.."/leafdecay.lua")
-
--- tree spawning setup
-
-if moretrees.spawn_saplings then
-	moretrees.spawn_beech_object = "moretrees:beech_sapling_ongen"
-	moretrees.spawn_apple_tree_object = "moretrees:apple_tree_sapling_ongen"
-	moretrees.spawn_oak_object = "moretrees:oak_sapling_ongen"
-	moretrees.spawn_sequoia_object = "moretrees:sequoia_sapling_ongen"
-	moretrees.spawn_palm_object = "moretrees:palm_sapling_ongen"
-	moretrees.spawn_pine_object = "moretrees:pine_sapling_ongen"
-	moretrees.spawn_rubber_tree_object = "moretrees:rubber_tree_sapling_ongen"
-	moretrees.spawn_willow_object = "moretrees:willow_sapling_ongen"
-	moretrees.spawn_acacia_object = "moretrees:acacia_sapling_ongen"
-	moretrees.spawn_birch_object = "moretrees:birch_sapling_ongen"
-	moretrees.spawn_spruce_object = "moretrees:spruce_sapling_ongen"
-	moretrees.spawn_jungletree_object = "moretrees:jungletree_sapling_ongen"
-	moretrees.spawn_fir_object = "moretrees:fir_sapling_ongen"
-	moretrees.spawn_fir_snow_object = "snow:sapling_pine"
-else
-	moretrees.spawn_beech_object = moretrees.beech_model
-	moretrees.spawn_apple_tree_object = moretrees.apple_tree_model
-	moretrees.spawn_oak_object = moretrees.oak_model
-	moretrees.spawn_sequoia_object = moretrees.sequoia_model
-	moretrees.spawn_palm_object = moretrees.palm_model
-	moretrees.spawn_pine_object = moretrees.pine_model
-	moretrees.spawn_rubber_tree_object = moretrees.rubber_tree_model
-	moretrees.spawn_willow_object = moretrees.willow_model
-	moretrees.spawn_acacia_object = moretrees.acacia_model
-	moretrees.spawn_birch_object = "moretrees:grow_birch"
-	moretrees.spawn_spruce_object = "moretrees:grow_spruce"
-	moretrees.spawn_jungletree_object = "moretrees:grow_jungletree"
-	moretrees.spawn_fir_object = "moretrees:grow_fir"
-	moretrees.spawn_fir_snow_object = "moretrees:grow_fir_snow"
-end
-
-
-if moretrees.enable_beech then
-	plantslib:register_generate_plant(moretrees.beech_biome, moretrees.spawn_beech_object)
-end
-
-if moretrees.enable_apple_tree then
-	plantslib:register_generate_plant(moretrees.apple_tree_biome, moretrees.spawn_apple_tree_object)
-end
-
-if moretrees.enable_oak then
-	plantslib:register_generate_plant(moretrees.oak_biome, moretrees.spawn_oak_object)
-end
-
-if moretrees.enable_sequoia then
-	plantslib:register_generate_plant(moretrees.sequoia_biome, moretrees.spawn_sequoia_object)
-end
-
-if moretrees.enable_palm then
-	plantslib:register_generate_plant(moretrees.palm_biome, moretrees.spawn_palm_object)
-end
-
-if moretrees.enable_pine then
-	plantslib:register_generate_plant(moretrees.pine_biome, moretrees.spawn_pine_object)
-end
-
-if moretrees.enable_rubber_tree then
-	plantslib:register_generate_plant(moretrees.rubber_tree_biome, moretrees.spawn_rubber_tree_object)
-end
-
-if moretrees.enable_willow then
-	plantslib:register_generate_plant(moretrees.willow_biome, moretrees.spawn_willow_object)
-end
-
-if moretrees.enable_acacia then
-	plantslib:register_generate_plant(moretrees.acacia_biome, moretrees.spawn_acacia_object)
-end
-
-if moretrees.enable_birch then
-	plantslib:register_generate_plant(moretrees.birch_biome, moretrees.spawn_birch_object)
-end
-
-if moretrees.enable_spruce then
-	plantslib:register_generate_plant(moretrees.spruce_biome, moretrees.spawn_spruce_object)
-end
-
-if moretrees.enable_jungle_tree then
-	plantslib:register_generate_plant(moretrees.jungletree_biome, moretrees.spawn_jungletree_object)
-end
-
-if moretrees.enable_fir then
-	plantslib:register_generate_plant(moretrees.fir_biome, moretrees.spawn_fir_object)
-	if minetest.get_modpath("snow") then
-		plantslib:register_generate_plant(moretrees.fir_biome_snow, moretrees.spawn_fir_snow_object)
-	end
-end
-
--- Code to spawn a birch tree
-
-function moretrees:grow_birch(pos)
-	minetest.remove_node(pos)
-	if math.random(1,2) == 1 then
-		minetest.spawn_tree(pos, moretrees.birch_model1)
-	else
-		minetest.spawn_tree(pos, moretrees.birch_model2)
-	end
-end
-
--- Code to spawn a spruce tree
-
-function moretrees:grow_spruce(pos)
-	minetest.remove_node(pos)
-	if math.random(1,2) == 1 then
-		minetest.spawn_tree(pos, moretrees.spruce_model1)
-	else
-		minetest.spawn_tree(pos, moretrees.spruce_model2)
-	end
-end
-
--- Code to spawn jungle trees
-
-moretrees.jt_axiom1 = "FFFA"
-moretrees.jt_rules_a1 = "FFF[&&-FBf[&&&Ff]^^^Ff][&&+FBFf[&&&FFf]^^^Ff][&&---FBFf[&&&Ff]^^^Ff][&&+++FBFf[&&&Ff]^^^Ff]F/A"
-moretrees.jt_rules_b1 = "[-Ff&f][+Ff&f]B"
-
-moretrees.jt_axiom2 = "FFFFFA"
-moretrees.jt_rules_a2 = "FFFFF[&&-FFFBF[&&&FFff]^^^FFf][&&+FFFBFF[&&&FFff]^^^FFf][&&---FFFBFF[&&&FFff]^^^FFf][&&+++FFFBFF[&&&FFff]^^^FFf]FF/A"
-moretrees.jt_rules_b2 = "[-FFf&ff][+FFf&ff]B"
-
-moretrees.ct_rules_a1 = "FF[FF][&&-FBF][&&+FBF][&&---FBF][&&+++FBF]F/A"
-moretrees.ct_rules_b1 = "[-FBf][+FBf]"
-
-moretrees.ct_rules_a2 = "FF[FF][&&-FBF][&&+FBF][&&---FBF][&&+++FBF]F/A"
-moretrees.ct_rules_b2 = "[-fB][+fB]"
-
-function moretrees:grow_jungletree(pos)
-	local r1 = math.random(2)
-	local r2 = math.random(3)
-	if r1 == 1 then
-		moretrees.jungletree_model.leaves2 = "moretrees:jungletree_leaves_red"
-	else 
-		moretrees.jungletree_model.leaves2 = "moretrees:jungletree_leaves_yellow"
-	end
-	moretrees.jungletree_model.leaves2_chance = math.random(25, 75)
-
-	if r2 == 1 then
-		moretrees.jungletree_model.trunk_type = "single"
-		moretrees.jungletree_model.iterations = 2
-		moretrees.jungletree_model.axiom = moretrees.jt_axiom1
-		moretrees.jungletree_model.rules_a = moretrees.jt_rules_a1
-		moretrees.jungletree_model.rules_b = moretrees.jt_rules_b1
-	elseif r2 == 2 then
-		moretrees.jungletree_model.trunk_type = "double"
-		moretrees.jungletree_model.iterations = 4
-		moretrees.jungletree_model.axiom = moretrees.jt_axiom2
-		moretrees.jungletree_model.rules_a = moretrees.jt_rules_a2
-		moretrees.jungletree_model.rules_b = moretrees.jt_rules_b2
-	elseif r2 == 3 then
-		moretrees.jungletree_model.trunk_type = "crossed"
-		moretrees.jungletree_model.iterations = 4
-		moretrees.jungletree_model.axiom = moretrees.jt_axiom2
-		moretrees.jungletree_model.rules_a = moretrees.jt_rules_a2
-		moretrees.jungletree_model.rules_b = moretrees.jt_rules_b2
-	end
-
-	minetest.remove_node(pos)
-	local leaves = minetest.find_nodes_in_area({x = pos.x-1, y = pos.y, z = pos.z-1}, {x = pos.x+1, y = pos.y+10, z = pos.z+1}, "default:leaves")
-	for leaf in ipairs(leaves) do
-			minetest.remove_node(leaves[leaf])
-	end
-	minetest.spawn_tree(pos, moretrees.jungletree_model)
-end
-
--- code to spawn fir trees
-
-function moretrees:grow_fir(pos)
-	if math.random(2) == 1 then
-		moretrees.fir_model.leaves="moretrees:fir_leaves"
-	else
-		moretrees.fir_model.leaves="moretrees:fir_leaves_bright"
-	end
-	if math.random(2) == 1 then
-		moretrees.fir_model.rules_a = moretrees.ct_rules_a1
-		moretrees.fir_model.rules_b = moretrees.ct_rules_b1
-	else
-		moretrees.fir_model.rules_a = moretrees.ct_rules_a2
-		moretrees.fir_model.rules_b = moretrees.ct_rules_b2
-	end
-
-	moretrees.fir_model.iterations = 7
-	moretrees.fir_model.random_level = 5
-
-	minetest.remove_node(pos)
-	local leaves = minetest.find_nodes_in_area({x = pos.x, y = pos.y, z = pos.z}, {x = pos.x, y = pos.y+5, z = pos.z}, "default:leaves")
-	for leaf in ipairs(leaves) do
-			minetest.remove_node(leaves[leaf])
-	end
-	minetest.spawn_tree(pos,moretrees.fir_model)
-end
-
--- same thing, but a smaller version that grows only in snow biomes
-
-function moretrees:grow_fir_snow(pos)
-	if math.random(2) == 1 then
-		moretrees.fir_model.leaves="moretrees:fir_leaves"
-	else
-		moretrees.fir_model.leaves="moretrees:fir_leaves_bright"
-	end
-	if math.random(2) == 1 then
-		moretrees.fir_model.rules_a = moretrees.ct_rules_a1
-		moretrees.fir_model.rules_b = moretrees.ct_rules_b1
-	else
-		moretrees.fir_model.rules_a = moretrees.ct_rules_a2
-		moretrees.fir_model.rules_b = moretrees.ct_rules_b2
-	end
-
-	moretrees.fir_model.iterations = 2
-	moretrees.fir_model.random_level = 2
-
-	minetest.remove_node(pos)
-	local leaves = minetest.find_nodes_in_area({x = pos.x, y = pos.y, z = pos.z}, {x = pos.x, y = pos.y+5, z = pos.z}, "default:leaves")
-	for leaf in ipairs(leaves) do
-			minetest.remove_node(leaves[leaf])
-	end
-	minetest.spawn_tree(pos,moretrees.fir_model)
-end
-
-print(S("[Moretrees] Loaded (2013-02-11)"))
