@@ -1,15 +1,5 @@
 -- mods/default/nodes.lua
 
-
---[[ Node name convention:
-
-Although many node names are in combined-word form, the required form for new
-node names is words separated by underscores. If both forms are used in written
-language (for example pinewood and pine wood) the underscore form should be used.
-
---]]
-
-
 --[[ Index:
 
 Stone
@@ -61,15 +51,14 @@ default:tree
 default:wood
 default:leaves
 default:sapling
-default:apple
 
 default:jungletree
 default:junglewood
 default:jungleleaves
 default:junglesapling
 
-default:pine_tree
-default:pine_wood
+default:pinetree
+default:pinewood
 default:pine_needles
 default:pine_sapling
 
@@ -366,19 +355,19 @@ minetest.register_node("default:snow", {
 	node_box = {
 		type = "fixed",
 		fixed = {
-			{-0.5, -0.5, -0.5, 0.5, -0.25, 0.5},
+			{-0.5, -0.5, -0.5,  0.5, -0.5+2/16, 0.5},
 		},
 	},
-	groups = {crumbly = 3, falling_node = 1},
+	groups = {crumbly=3,falling_node=1},
 	sounds = default.node_sound_dirt_defaults({
-		footstep = {name = "default_snow_footstep", gain = 0.25},
-		dug = {name = "default_snow_footstep", gain = 0.75},
+		footstep = {name="default_snow_footstep", gain=0.25},
+		dug = {name="default_snow_footstep", gain=0.75},
 	}),
 
 	on_construct = function(pos)
 		pos.y = pos.y - 1
 		if minetest.get_node(pos).name == "default:dirt_with_grass" then
-			minetest.set_node(pos, {name = "default:dirt_with_snow"})
+			minetest.set_node(pos, {name="default:dirt_with_snow"})
 		end
 	end,
 })
@@ -478,9 +467,10 @@ minetest.register_node("default:leaves", {
 
 minetest.register_node("default:apple", {
 	description = "Apple",
-	drawtype = "plantlike",
+	drawtype = "mesh",
+	mesh = "default_apple.obj",
 	visual_scale = 1.0,
-	tiles = {"default_apple.png"},
+	tiles = {"default_apple_3d.png"},
 	inventory_image = "default_apple.png",
 	paramtype = "light",
 	sunlight_propagates = true,
@@ -572,10 +562,13 @@ minetest.register_node("default:junglesapling", {
 
 
 
-minetest.register_node("default:pine_tree", {
+minetest.register_node("default:pinetree", {
 	description = "Pine Tree",
-	tiles = {"default_pine_tree_top.png", "default_pine_tree_top.png",
-		"default_pine_tree.png"},
+	tiles = {
+		"default_pinetree_top.png",
+		"default_pinetree_top.png",
+		"default_pinetree.png"
+	},
 	paramtype2 = "facedir",
 	is_ground_content = false,
 	groups = {tree = 1, choppy = 2, oddly_breakable_by_hand = 1, flammable = 2},
@@ -584,9 +577,9 @@ minetest.register_node("default:pine_tree", {
 	on_place = minetest.rotate_node
 })
 
-minetest.register_node("default:pine_wood", {
-	description = "Pine Wood Planks",
-	tiles = {"default_pine_wood.png"},
+minetest.register_node("default:pinewood", {
+	description = "Pinewood Planks",
+	tiles = {"default_pinewood.png"},
 	is_ground_content = false,
 	groups = {choppy = 2, oddly_breakable_by_hand = 2, flammable = 3, wood = 1},
 	sounds = default.node_sound_wood_defaults(),
@@ -627,15 +620,23 @@ minetest.register_node("default:pine_sapling", {
 		type = "fixed",
 		fixed = {-0.3, -0.5, -0.3, 0.3, 0.35, 0.3}
 	},
-	groups = {snappy = 2, dig_immediate = 3, flammable = 2,
-		attached_node = 1, sapling = 1},
+	groups = {
+		snappy = 2,
+		dig_immediate = 3,
+		flammable = 2,
+		attached_node = 1,
+		sapling = 1
+	},
 	sounds = default.node_sound_leaves_defaults(),
 })
 
 minetest.register_node("default:acacia_tree", {
 	description = "Acacia Tree",
-	tiles = {"default_acacia_tree_top.png", "default_acacia_tree_top.png",
-		"default_acacia_tree.png"},
+	tiles = {
+		"default_acacia_tree_top.png",
+		"default_acacia_tree_top.png",
+		"default_acacia_tree.png"
+	},
 	paramtype2 = "facedir",
 	is_ground_content = false,
 	groups = {tree = 1, choppy = 2, oddly_breakable_by_hand = 1, flammable = 2},
@@ -686,8 +687,13 @@ minetest.register_node("default:acacia_sapling", {
 		type = "fixed",
 		fixed = {-0.3, -0.5, -0.3, 0.3, 0.35, 0.3}
 	},
-	groups = {snappy = 2, dig_immediate = 3, flammable = 2,
-		attached_node = 1, sapling = 1},
+	groups = {
+		snappy = 2,
+		dig_immediate = 3,
+		flammable = 2,
+		attached_node = 1,
+		sapling = 1
+	},
 	sounds = default.node_sound_leaves_defaults(),
 })
 
